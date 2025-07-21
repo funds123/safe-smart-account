@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre, { deployments, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { getDefaultCallbackHandler, getSafeWithOwners } from "../../test/utils/setup";
+import { getTokenCallbackHandler, getSafeWithOwners } from "../../test/utils/setup";
 import { logGas, executeTx, SafeTransaction, safeSignTypedData, SafeSignature, executeContractCallWithSigners } from "../../src/utils/execution";
 import { Wallet, Contract } from "ethers";
 import { AddressZero } from "@ethersproject/constants";
@@ -14,7 +14,7 @@ export interface Contracts {
 }
 
 const generateTarget = async (owners: Wallet[], threshold: number, guardAddress: string, logGasUsage?: boolean) => {
-    const fallbackHandler = await getDefaultCallbackHandler()
+    const fallbackHandler = await getTokenCallbackHandler()
     const safe = await getSafeWithOwners(owners.map((owner) => owner.address), threshold, fallbackHandler.address, logGasUsage)
     await executeContractCallWithSigners(safe, safe, "setGuard", [guardAddress], owners)
     return safe
@@ -23,7 +23,7 @@ const generateTarget = async (owners: Wallet[], threshold: number, guardAddress:
 export const configs = [
     { name: "single owner", signers: [user1], threshold: 1 },
     { name: "single owner and guard", signers: [user1], threshold: 1, useGuard: true },
-    { name: "2 out of 23", signers: [user1, user2], threshold: 2 },
+    { name: "2 out of 2", signers: [user1, user2], threshold: 2 },
     { name: "3 out of 3", signers: [user1, user2, user3], threshold: 3 },
     { name: "3 out of 5", signers: [user1, user2, user3, user4, user5], threshold: 3 },
 ]
@@ -33,7 +33,7 @@ export const setupBenchmarkContracts = (benchmarkFixture?: () => Promise<any>, l
         await deployments.fixture();
         const guardFactory = await hre.ethers.getContractFactory("DelegateCallTransactionGuard");
         const guard = await guardFactory.deploy(AddressZero)
-        const targets = []
+        const targets: Contract[] = []
         for (const config of configs) {
             targets.push(await generateTarget(config.signers, config.threshold, config.useGuard ? guard.address : AddressZero, logGasUsage))
         }
